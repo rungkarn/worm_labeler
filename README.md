@@ -108,3 +108,12 @@ bash tools/lanta_publish_pack.sh <โฟลเดอร์ที่มี roi_ma
 สคริปต์ทำครบ: pull ทั้งสอง repo → export → commit → push repo ภาพ แล้วเว็บอัปเดตใน ~1 นาที. แต่ละ repo ต้องมี deploy key ของตัวเอง (GitHub ไม่ให้ key เดียวใช้สอง repo)
 
 **ลาเบลเสร็จแล้ว:** ลบ repo `worm_labeler_packs` ทิ้ง (ประวัติ+ภาพหายหมด) แล้วสร้างใหม่ว่างๆ + deploy key + เปิด Pages (main `/`) ก่อนรอบถัดไป — repo โค้ดไม่ต้องแตะ
+
+## ดูความคืบหน้า (รู้ว่าใครลาเบลเสร็จหรือยัง)
+
+```powershell
+& "D:\DEV\miniforge-pypy3\python.exe" -I tools\progress.py            # ทุก pack
+& "D:\DEV\miniforge-pypy3\python.exe" -I tools\progress.py --pack relabel_class3_a
+```
+
+อ่าน endpoint/packsBase จาก `docs/config.json` เอง; จำนวนรวมต่อ pack = จำนวนรายการใน `manifest.json` บนเว็บภาพ, ที่ลาเบลแล้ว = ค่าล่าสุดต่อไฟล์ (Class ≥ 0). สถานะ `DONE` = ครบทุกรูป → ค่อยรัน `collect_labels.py` ดึง CSV
