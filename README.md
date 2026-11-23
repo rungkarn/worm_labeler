@@ -86,3 +86,15 @@ https://<user>.github.io/worm-label/?pack=nb01&u=somchai
 
 pack 30 รูปจริงจาก `relabel_class3` + endpoint จำลอง: คีย์ลัด/ส่งเป็น batch/คืนสถานะหลังล้าง localStorage/collect_labels ผ่านหมด, หน้าจอมือถือ 375px ปุ่มคลาสเห็นโดยไม่ต้องเลื่อน.
 **ยังไม่ได้ทดสอบกับ Apps Script จริง** (ต้อง deploy ด้วยบัญชี Google ของคุณ) และยังไม่ได้ push ขึ้น GitHub (repo ชื่อ `worm-label` หรือ `worm_labeler` ก็ได้ — ชื่อ repo คือส่วนหนึ่งของ URL)
+
+## ทำ pack จาก Lanta เท่านั้น (ภาพไม่ผ่านเครื่อง Windows)
+
+Lanta push ขึ้น GitHub เองด้วย deploy key (ผูกกับ repo นี้ repo เดียว) — clone อยู่ที่ `/project/lt200264-saiwat/WormProject/worm_labeler_repo`
+
+```bash
+ssh lanta
+cd /project/lt200264-saiwat/WormProject/worm_labeler_repo
+bash tools/lanta_publish_pack.sh <โฟลเดอร์ที่มี roi_mask+roi_src> <pack-id> [--part 1/2] [--limit N] [--skip-labelled labels.csv]
+```
+
+สคริปต์ทำครบ: pull → export → commit → push แล้วเว็บอัปเดตใน ~1 นาที. ฝั่ง Windows แก้และ push โค้ด (`docs/index.html`, `tools/`) ได้ตามปกติ แต่ `docs/packs/` ถูกตัดออกจาก working tree ด้วย sparse-checkout (ภาพจะไม่ถูกดึงมาตอน `git pull`)
