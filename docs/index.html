@@ -37,7 +37,13 @@ button.ghost{background:var(--panel)}
 .opts{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center}
 .opts input[type=number]{width:72px;background:var(--panel);border:0;color:var(--fg);padding:4px 6px;border-radius:4px}
 .keys{font-size:12px;color:var(--muted);text-align:center;max-width:960px}
-#feedback{min-height:38px;font-size:24px;font-weight:bold;color:#2ECC71;text-align:center;line-height:1.3}
+/* centred on the seam between the two images (centre of .views); doesn't take layout space, clicks pass through */
+.views{position:relative}
+#feedback{position:absolute;left:50%;top:calc(50% + 10px);transform:translate(-50%,-50%);z-index:5;pointer-events:none;
+  max-width:min(92%,380px);padding:6px 18px;border-radius:12px;background:rgba(20,30,40,.82);box-shadow:0 2px 12px rgba(0,0,0,.5);
+  font-size:26px;font-weight:bold;color:#2ECC71;text-align:center;line-height:1.3}
+#feedback:empty{display:none}
+#feedback.kept{font-size:16px;opacity:.92;padding:4px 12px}
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
 #overlay.show{display:flex}
 .card{background:var(--bg);border:2px solid var(--panel);border-radius:8px;padding:20px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
@@ -46,7 +52,7 @@ button.ghost{background:var(--panel)}
 @media (max-width:700px){
   .classes{grid-template-columns:repeat(2,minmax(0,1fr))}.keys{display:none}
   main{padding:8px}
-  #feedback{font-size:18px;min-height:28px}
+  #feedback{font-size:16px;padding:4px 10px}#feedback.kept{font-size:13px;padding:3px 8px}
   .views{flex-wrap:nowrap;gap:6px}.view{flex:1 1 0}.view h3{font-size:11px}
 }
 </style>
@@ -63,7 +69,6 @@ button.ghost{background:var(--panel)}
 <div id="bar"><i></i></div>
 
 <main>
-  <div id="feedback" aria-live="polite"></div>
   <div class="views">
     <div class="view">
       <h3 id="tMask">ภาพ Segment Mask</h3>
@@ -73,6 +78,7 @@ button.ghost{background:var(--panel)}
       <h3 id="tSrc">ภาพต้นฉบับ</h3>
       <div class="frame"><img id="imgSrc" alt=""></div>
     </div>
+    <div id="feedback" aria-live="polite"></div>
   </div>
 
   <div class="controls">
@@ -298,6 +304,7 @@ function render(){
   document.querySelectorAll("#classes button").forEach(b => b.classList.toggle("on", +b.dataset.c === c));
   // "✅ class" right after choosing; "📌 เลือก: class" when coming back to an already-labelled image (as v2.1)
   $("feedback").textContent = c < 0 ? "" : (S.flash ? "✅ " : "📌 เลือก: ") + CLASSES[c][0];
+  $("feedback").className = S.flash ? "flash" : "kept";
   $("bPrev").disabled = S.idx === 0;
   $("bNext").disabled = S.idx >= n - 1;
   $("jump").max = n;
