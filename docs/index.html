@@ -133,7 +133,9 @@ function persist(){
   store.set(qkey(), JSON.stringify(S.queue));
 }
 const stem = f => f.replace(/\.[^.]+$/, "");
-const packUrl = p => `packs/${encodeURIComponent(S.pack)}/${p}`;
+// packs live in a separate repo/site (config.packsBase, e.g. https://user.github.io/worm_labeler_packs/); empty = same site
+const packsBase = () => S.cfg.packsBase ? S.cfg.packsBase.replace(/\/+$/, "") + "/" : "";
+const packUrl = p => `${packsBase()}packs/${encodeURIComponent(S.pack)}/${p}`;
 
 // ---- overlay dialogs ----
 function dialog(html){ $("card").innerHTML = html; $("overlay").classList.add("show"); }
@@ -158,7 +160,7 @@ function askName(){
 
 async function pickPack(){
   let list = [];
-  try{ list = await (await fetch("packs/index.json", {cache:"no-store"})).json(); }catch(e){}
+  try{ list = await (await fetch(packsBase() + "packs/index.json", {cache:"no-store"})).json(); }catch(e){}
   if(!list.length){
     dialog(`<h3 style="margin:0">ไม่พบชุดข้อมูล</h3><div>เปิดลิงก์ที่มี <code>?pack=ชื่อชุด</code></div>`);
     return;

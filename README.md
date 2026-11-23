@@ -5,7 +5,7 @@
 
 ```
 Lanta/เครื่องคุณ                 GitHub Pages (public)             ผู้ลาเบล              Google Sheet
-roi_mask/*.npy + roi_src/*.npy ─► tools/export_web_pack.py ─► docs/packs/<pack>/ ─► เปิดลิงก์ ─► POST ─► tab "labels"
+roi_mask/*.npy + roi_src/*.npy ─► tools/export_web_pack.py ─► repo worm_labeler_packs: packs/<pack>/ ─► เปิดลิงก์ ─► POST ─► tab "labels"
                                                                                                     │
                           ground_truth_worms_<pack>_<ชื่อ>.csv ◄─ tools/collect_labels.py ◄───────────────┘
 ```
@@ -85,11 +85,18 @@ https://<user>.github.io/worm-label/?pack=nb01&u=somchai
 ## ทดสอบแล้ว (2026-11-23)
 
 pack 30 รูปจริงจาก `relabel_class3` + endpoint จำลอง: คีย์ลัด/ส่งเป็น batch/คืนสถานะหลังล้าง localStorage/collect_labels ผ่านหมด, หน้าจอมือถือ 375px ปุ่มคลาสเห็นโดยไม่ต้องเลื่อน.
-**ยังไม่ได้ทดสอบกับ Apps Script จริง** (ต้อง deploy ด้วยบัญชี Google ของคุณ) และยังไม่ได้ push ขึ้น GitHub (repo ชื่อ `worm-label` หรือ `worm_labeler` ก็ได้ — ชื่อ repo คือส่วนหนึ่งของ URL)
+ทดสอบกับ Apps Script จริงจาก github.io แล้ว (2026-11-23): ส่งผล → Sheet → กู้คืนหลังล้าง localStorage → collect_labels ผ่าน
 
 ## ทำ pack จาก Lanta เท่านั้น (ภาพไม่ผ่านเครื่อง Windows)
 
-Lanta push ขึ้น GitHub เองด้วย deploy key (ผูกกับ repo นี้ repo เดียว) — clone อยู่ที่ `/project/lt200264-saiwat/WormProject/worm_labeler_repo`
+**ภาพอยู่คนละ repo กับโค้ด (ตั้งแต่ 2026-11-23):**
+
+| repo | เก็บอะไร | เว็บ | clone บน Lanta (deploy key) |
+|---|---|---|---|
+| `rungkarn/worm_labeler` | โค้ดเท่านั้น (`docs/index.html`, `config.json`, `tools/`) | https://rungkarn.github.io/worm_labeler/ | `…/WormProject/worm_labeler_repo` (alias `github-wl`) |
+| `rungkarn/worm_labeler_packs` | ภาพ `packs/<pack>/` เท่านั้น | https://rungkarn.github.io/worm_labeler_packs/ | `…/WormProject/worm_labeler_packs_repo` (alias `github-wlp`) |
+
+`docs/config.json` → `packsBase` ชี้ไปที่เว็บของ repo ภาพ. Windows ไม่เคยมีภาพ (clone `worm_labeler` มาก็ไม่มีภาพ ไม่ต้องใช้ sparse-checkout)
 
 ```bash
 ssh lanta
@@ -97,4 +104,6 @@ cd /project/lt200264-saiwat/WormProject/worm_labeler_repo
 bash tools/lanta_publish_pack.sh <โฟลเดอร์ที่มี roi_mask+roi_src> <pack-id> [--part 1/2] [--limit N] [--skip-labelled labels.csv]
 ```
 
-สคริปต์ทำครบ: pull → export → commit → push แล้วเว็บอัปเดตใน ~1 นาที. ฝั่ง Windows แก้และ push โค้ด (`docs/index.html`, `tools/`) ได้ตามปกติ แต่ `docs/packs/` ถูกตัดออกจาก working tree ด้วย sparse-checkout (ภาพจะไม่ถูกดึงมาตอน `git pull`)
+สคริปต์ทำครบ: pull ทั้งสอง repo → export → commit → push repo ภาพ แล้วเว็บอัปเดตใน ~1 นาที. แต่ละ repo ต้องมี deploy key ของตัวเอง (GitHub ไม่ให้ key เดียวใช้สอง repo)
+
+**ลาเบลเสร็จแล้ว:** ลบ repo `worm_labeler_packs` ทิ้ง (ประวัติ+ภาพหายหมด) แล้วสร้างใหม่ว่างๆ + deploy key + เปิด Pages (main `/`) ก่อนรอบถัดไป — repo โค้ดไม่ต้องแตะ
