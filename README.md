@@ -66,13 +66,23 @@ https://<user>.github.io/worm-label/?pack=nb01&u=somchai
 
 ## 4. เอาผลกลับ
 
-```powershell
-& "D:\DEV\miniforge-pypy3\python.exe" -I tools\collect_labels.py --url https://script.google.com/macros/s/XXXX/exec --out labels_web
-# หรือใช้ไฟล์ที่โหลดจาก Sheet (tab labels → File → Download → CSV)
-& "D:\DEV\miniforge-pypy3\python.exe" -I tools\collect_labels.py --csv labels.csv --pack nb01 --out labels_web
+รันบน Lanta (transfer node) — ไฟล์ลงโฟลเดอร์ labels ของ worm ตรงๆ ไม่ผ่านเครื่อง Windows (2026-11-23):
+
+```bash
+ssh lanta
+cd /project/lt200264-saiwat/WormProject/worm_labeler_repo && git pull -q --ff-only
+/project/lt200264-saiwat/Env/segmentation/bin/python tools/collect_labels.py --dry-run   # ดูก่อนว่าจะเขียนไฟล์อะไร
+/project/lt200264-saiwat/Env/segmentation/bin/python tools/collect_labels.py             # ทุก pack ที่อยู่บนเว็บตอนนี้
+/project/lt200264-saiwat/Env/segmentation/bin/python tools/collect_labels.py --pack C    # pack เดียว (หรือ pack ที่ถูกลบ/เปลี่ยนชื่อไปแล้ว)
 ```
 
-ได้ `labels_web/ground_truth_worms_<pack>_<ชื่อ>.csv` ต่อคน — รูปแบบเดียวกับ CSV ของโปรแกรมเดิม (ส่งต่อ label merge ตามขั้นตอนเดิม)
+ได้ `/project/lt200264-saiwat/WormProject/data/worm-24022026/labels/worm-24022026-labels_<pack>_<ชื่อ>_<YYYYMMDD>.csv` ต่อคน
+— คอลัมน์ `Class,Filename,file_hash` เหมือน CSV ของโปรแกรม desktop ส่งเข้า `python -m tool.label_merge --input …` ได้เลย ·
+endpoint/packsBase อ่านจาก `docs/config.json` · รันซ้ำวันเดียวกัน = เขียนทับด้วยผลล่าสุด (ครบกว่าเดิม) ·
+pack ที่ไม่อยู่บนเว็บแล้ว (เปลี่ยนชื่อ/ลบ/ทดสอบ) ถูกข้าม ต้องระบุ `--pack` เอง · ใช้ไฟล์ export จาก Sheet แทน: `--csv labels.csv`
+
+**ส่งจาก pack_reseg ตรงๆ:** `python tool/pack_reseg.py --no-dry-run --web C` (ใน `WormProject/code`) = zip ตามปกติ + ขึ้นเว็บเป็น pack C — ดู `code/tool/PACK_RESEG.md`
+`tools/lanta_publish_pack.sh` / `export_web_pack.py` รับ zip ของ pack_reseg เป็น `--src-dir` ได้ (ข้าม `undecidable/`, เก็บ `list.txt` ไว้ใน manifest `relabel`) และไม่ยอมเขียนทับ pack ชื่อเดิม เว้นแต่ `--replace`
 
 ## พฤติกรรมของแอป
 

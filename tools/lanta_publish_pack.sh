@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run ON LANTA (transfer node `lanta`, which can reach github.com). Images never touch the local PC.
 #
-#   bash tools/lanta_publish_pack.sh <src-dir with roi_mask/ roi_src/> <pack-id> [export_web_pack.py args...]
+#   bash tools/lanta_publish_pack.sh <src-dir with roi_mask/ roi_src/ | pack_reseg .zip> <pack-id> [export_web_pack.py args, e.g. --part 1/2 --replace]
 #   e.g. bash tools/lanta_publish_pack.sh /project/lt200264-saiwat/WormProject/data/relabel_class3 A --part 1/2     # pack id: ASCII letters/digits/_/-; the labeller's name goes in ?u=, not in the pack id
 #
 # Two clones on Lanta (each with its own read-write deploy key, since GitHub allows one repo per key):
