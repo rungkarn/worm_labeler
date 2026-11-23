@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worm Label Tool (web)</title>
+<style>
+:root{
+  --bg:#2C3E50; --panel:#34495E; --fg:#ECF0F1; --blue:#3498DB; --green:#27AE60;
+  --red:#E74C3C; --muted:#95A5A6; --sel:#F1C40F;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:Tahoma,"Noto Sans Thai",system-ui,sans-serif}
+body{min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:8px 16px;background:#243342}
+header b{font-size:16px}
+.chip{padding:2px 10px;border-radius:12px;background:var(--panel);font-size:13px}
+.chip.ok{background:#1e6b3c}.chip.warn{background:#8a6d1a}.chip.err{background:#8a2a22}
+.spacer{flex:1}
+#bar{height:6px;background:#1b2836}
+#bar i{display:block;height:100%;width:0;background:var(--green);transition:width .2s}
+main{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 16px 24px;gap:12px}
+.views{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;width:100%}
+.view{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 1 450px;min-width:0}
+.view h3{margin:0;font-size:14px;font-weight:bold;text-align:center;word-break:break-all}
+.frame{position:relative;width:100%;max-width:450px;aspect-ratio:1/1;background:#000;border:2px solid var(--panel)}
+.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block}
+.controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{font:inherit;font-size:14px;color:var(--fg);background:var(--blue);border:0;border-radius:4px;padding:8px 14px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+button.green{background:var(--green)}
+button.ghost{background:var(--panel)}
+.classes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;max-width:960px}
+.classes button{background:var(--panel);font-weight:bold;padding:12px 6px;border:2px solid transparent;line-height:1.25}
+.classes button small{display:block;font-weight:normal;color:var(--muted);font-size:12px}
+.classes button.on{border-color:var(--sel);background:#0A0909;color:var(--sel)}
+.opts{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center}
+.opts input[type=number]{width:72px;background:var(--panel);border:0;color:var(--fg);padding:4px 6px;border-radius:4px}
+.keys{font-size:12px;color:var(--muted);text-align:center;max-width:960px}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#overlay.show{display:flex}
+.card{background:var(--bg);border:2px solid var(--panel);border-radius:8px;padding:20px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
+.card input[type=text]{font:inherit;padding:8px;border-radius:4px;border:0;background:var(--panel);color:var(--fg)}
+.packs{display:flex;flex-direction:column;gap:8px}
+@media (max-width:700px){
+  .classes{grid-template-columns:repeat(2,minmax(0,1fr))}.keys{display:none}
+  main{padding:8px}
+  .views{flex-wrap:nowrap;gap:6px}.view{flex:1 1 0}.view h3{font-size:11px}
+}
+</style>
+</head>
+<body>
+<header>
+  <b>🐛 Worm Label Tool</b>
+  <span class="chip" id="chipPack">pack: -</span>
+  <span class="chip" id="chipUser">user: -</span>
+  <span class="chip" id="chipCount">0 / 0</span>
+  <span class="spacer"></span>
+  <span class="chip" id="chipSync">sync: -</span>
+</header>
+<div id="bar"><i></i></div>
+
+<main>
+  <div class="views">
+    <div class="view">
+      <h3 id="tMask">Overlay Mask</h3>
+      <div class="frame"><img id="imgSrc2" alt=""><img id="imgMask" alt=""></div>
+    </div>
+    <div class="view">
+      <h3 id="tSrc">Source</h3>
+      <div class="frame"><img id="imgSrc" alt=""></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="bPrev" class="ghost">◀ Previous (Backspace / a)</button>
+    <button id="bNext" class="ghost">Next (Space / d) ▶</button>
+    <button id="bTodo" class="ghost">ไปรูปที่ยังไม่ลาเบล (n)</button>
+    <button id="bSave" class="green">💾 Save / Sync (s)</button>
+    <button id="bCsv" class="ghost">⬇ Download CSV</button>
+  </div>
+
+  <div class="classes" id="classes"></div>
+
+  <div class="opts">
+    <label><input type="checkbox" id="optAuto"> กดเลือกแล้วไปรูปถัดไปอัตโนมัติ</label>
+    <label>ไปรูปที่ <input type="number" id="jump" min="1"> <button id="bJump" class="ghost" style="padding:3px 10px">ไป</button></label>
+    <button id="bUser" class="ghost" style="padding:3px 10px">เปลี่ยนชื่อ</button>
+  </div>
+
+  <div class="keys">
+    ปุ่ม: 1–7 เลือกคลาส · 0 ล้างคำตอบ · ←/→ เลื่อนคลาส · ↑/↓ สลับแถว · Space/d ถัดไป · Backspace/a ย้อน · n ไปรูปที่ยังไม่ลาเบล · s บันทึก
+  </div>
+</main>
+
+<div id="overlay"><div class="card" id="card"></div></div>
+
+<script>
+"use strict";
+// ---- class definitions (same as worm_label_app_v2.py) ----
+const CLASSES = [
+  ["หนอนเด็ก", 0], ["หนอนพอดี", 1], ["หนอนแก่", 2], ["หนอนระบุรุ่นไม่ได้", 3],
+  ["ไม่ใช่หนอน", 4], ["รูปแหว่ง/พลาด", 5], ["หนอนไม่มีคุณภาพ", 6],
+];
+const DOWN = {0:4,1:5,2:6,3:6,4:4,5:5,6:6};
+const UP   = {4:0,5:1,6:3,0:0,1:1,2:2,3:3};
+const FLUSH_EVERY = 10, FLUSH_MS = 15000, BATCH = 200, PREFETCH = 6;
+
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const S = {
+  cfg: {endpoint: "", token: ""},
+  pack: qs.get("pack") || "",
+  user: "",
+  items: [],        // [[Filename, file_hash], ...]
+  labels: {},       // Filename -> [class, ts]
+  queue: [],        // unsent events
+  idx: 0,
+  inflight: false,
+  retryDelay: FLUSH_MS,
+  lastError: "",
+};
+
+// ---- safe storage ----
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+};
+const lkey = () => `wl:${S.pack}:${S.user}`;
+const qkey = () => `wlq:${S.pack}:${S.user}`;
+function persist(){
+  store.set(lkey(), JSON.stringify(S.labels));
+  store.set(qkey(), JSON.stringify(S.queue));
+}
+const stem = f => f.replace(/\.[^.]+$/, "");
+const packUrl = p => `packs/${encodeURIComponent(S.pack)}/${p}`;
+
+// ---- overlay dialogs ----
+function dialog(html){ $("card").innerHTML = html; $("overlay").classList.add("show"); }
+function closeDialog(){ $("overlay").classList.remove("show"); }
+
+function askName(){
+  return new Promise(res => {
+    dialog(`<h3 style="margin:0">ใส่ชื่อผู้ลาเบล</h3>
+      <div style="color:var(--muted);font-size:13px">ใช้ตัวอักษร/ตัวเลข/ขีด ไม่เกิน 30 ตัว — ใช้แยกผลของแต่ละคน และคืนสถานะเมื่อเปิดซ้ำ</div>
+      <input type="text" id="nameIn" maxlength="30" value="${S.user}">
+      <button id="nameOk">ตกลง</button>`);
+    const ok = () => {
+      const v = $("nameIn").value.trim().replace(/[^\w฀-๿-]/g, "");
+      if(!v) return;
+      closeDialog(); res(v);
+    };
+    $("nameOk").onclick = ok;
+    $("nameIn").onkeydown = e => { e.stopPropagation(); if(e.key === "Enter") ok(); };
+    $("nameIn").focus();
+  });
+}
+
+async function pickPack(){
+  let list = [];
+  try{ list = await (await fetch("packs/index.json", {cache:"no-store"})).json(); }catch(e){}
+  if(!list.length){
+    dialog(`<h3 style="margin:0">ไม่พบชุดข้อมูล</h3><div>เปิดลิงก์ที่มี <code>?pack=ชื่อชุด</code></div>`);
+    return;
+  }
+  dialog(`<h3 style="margin:0">เลือกชุดข้อมูล</h3><div class="packs">` +
+    list.map(p => `<button data-p="${p.id}">${p.id} (${p.n} รูป)</button>`).join("") + `</div>`);
+  document.querySelectorAll(".packs button").forEach(b => b.onclick = () => {
+    const u = new URL(location.href); u.searchParams.set("pack", b.dataset.p); location.href = u;
+  });
+}
+
+// ---- sync ----
+function setSync(text, cls){
+  const c = $("chipSync"); c.textContent = "sync: " + text; c.className = "chip " + (cls || "");
+}
+function updateSyncChip(){
+  if(!S.cfg.endpoint){ setSync("ไม่ได้ตั้งค่า (ใช้ Download CSV)", "warn"); return; }
+  if(S.lastError){ setSync(`ส่งไม่สำเร็จ (${S.queue.length} รอส่ง)`, "err"); return; }
+  if(S.inflight){ setSync("กำลังส่ง…", "warn"); return; }
+  setSync(S.queue.length ? `รอส่ง ${S.queue.length}` : "ส่งครบแล้ว ✓", S.queue.length ? "warn" : "ok");
+}
+async function flush(force){
+  if(!S.cfg.endpoint || S.inflight || !S.queue.length) { updateSyncChip(); return; }
+  S.inflight = true; updateSyncChip();
+  const batch = S.queue.slice(0, BATCH);
+  try{
+    const r = await fetch(S.cfg.endpoint, {
+      method: "POST",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},   // simple request: no CORS preflight
+      body: JSON.stringify({action:"labels", token:S.cfg.token, rows:batch}),
+    });
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || "server error");
+    S.queue.splice(0, batch.length);
+    S.lastError = ""; S.retryDelay = FLUSH_MS;
+    persist();
+  }catch(e){
+    S.lastError = String(e.message || e);
+    S.retryDelay = Math.min(S.retryDelay * 2, 120000);
+  }
+  S.inflight = false; updateSyncChip();
+  if(S.queue.length && !S.lastError) flush();
+}
+setInterval(() => flush(), FLUSH_MS);
+setInterval(() => { if(S.lastError) { S.lastError = ""; flush(); } }, 60000);
+window.addEventListener("online", () => { S.lastError = ""; flush(); });
+function beaconFlush(){
+  if(!S.cfg.endpoint || !S.queue.length || !navigator.sendBeacon) return;
+  try{
+    navigator.sendBeacon(S.cfg.endpoint, new Blob(
+      [JSON.stringify({action:"labels", token:S.cfg.token, rows:S.queue.slice(0, BATCH)})],
+      {type:"text/plain;charset=utf-8"}));
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden"){ persist(); beaconFlush(); } });
+window.addEventListener("pagehide", () => { persist(); beaconFlush(); });
+
+async function pullRemote(){
+  if(!S.cfg.endpoint) return;
+  try{
+    const u = `${S.cfg.endpoint}?action=get&pack=${encodeURIComponent(S.pack)}&user=${encodeURIComponent(S.user)}&token=${encodeURIComponent(S.cfg.token)}`;
+    const j = await (await fetch(u)).json();
+    if(!j.ok) return;
+    for(const [f, v] of Object.entries(j.labels || {})){
+      const cur = S.labels[f];
+      if(!cur || v[1] > cur[1]) S.labels[f] = v;
+    }
+    persist();
+  }catch(e){ /* offline: local only */ }
+}
+
+// ---- labelling ----
+const curClass = () => { const it = S.items[S.idx]; const l = it && S.labels[it[0]]; return l ? l[0] : -1; };
+function setLabel(c){
+  const it = S.items[S.idx]; if(!it) return;
+  const ts = Date.now();
+  if(c < 0) delete S.labels[it[0]]; else S.labels[it[0]] = [c, ts];
+  S.queue.push({ts: new Date(ts).toISOString(), pack:S.pack, labeler:S.user, Class:c, Filename:it[0], file_hash:it[1]});
+  persist(); render();
+  if(S.queue.length >= FLUSH_EVERY) flush();
+  if(c >= 0 && $("optAuto").checked) go(S.idx + 1);
+}
+function go(i){
+  if(i < 0 || i >= S.items.length) return;
+  S.idx = i; store.set(`wlpos:${S.pack}:${S.user}`, String(i)); render();
+}
+function nextTodo(from){
+  const n = S.items.length;
+  for(let k = 1; k <= n; k++){
+    const i = (from + k) % n;
+    if(!S.labels[S.items[i][0]]) return i;
+  }
+  return -1;
+}
+
+// ---- rendering ----
+const preloaded = new Map();
+function preload(i){
+  if(i < 0 || i >= S.items.length) return;
+  const s = stem(S.items[i][0]);
+  if(preloaded.has(s)) return;
+  const a = new Image(), b = new Image();
+  a.src = packUrl(`src/${s}.jpg`); b.src = packUrl(`mask/${s}.png`);
+  preloaded.set(s, [a, b]);
+  if(preloaded.size > 60) preloaded.delete(preloaded.keys().next().value);
+}
+function render(){
+  const n = S.items.length;
+  const done = Object.keys(S.labels).length;
+  $("chipCount").textContent = `ลาเบลแล้ว ${done} / ${n}`;
+  $("bar").firstElementChild.style.width = n ? (100 * done / n) + "%" : "0";
+  if(!n) return;
+  const it = S.items[S.idx], s = stem(it[0]);
+  $("tMask").textContent = `Overlay Mask (${S.idx + 1}/${n})`;
+  $("tSrc").textContent = `Source: ${it[0]}`;
+  document.title = `Worm Label - ${it[0]}`;
+  const src = packUrl(`src/${s}.jpg`);
+  $("imgSrc").src = src; $("imgSrc2").src = src; $("imgMask").src = packUrl(`mask/${s}.png`);
+  const c = curClass();
+  document.querySelectorAll("#classes button").forEach(b => b.classList.toggle("on", +b.dataset.c === c));
+  $("bPrev").disabled = S.idx === 0;
+  $("bNext").disabled = S.idx >= n - 1;
+  $("jump").max = n;
+  for(let k = 1; k <= PREFETCH; k++) preload(S.idx + k);
+  preload(S.idx - 1);
+  updateSyncChip();
+  if(done === n && !S._doneShown){
+    S._doneShown = true;
+    dialog(`<h3 style="margin:0">ลาเบลครบทุกรูปแล้ว 🎉</h3>
+      <div>ข้อมูลถูกส่งอัตโนมัติ${S.cfg.endpoint ? "" : " — <b>ยังไม่ได้ตั้งค่าเซิร์ฟเวอร์ กรุณากด Download CSV แล้วส่งให้ผู้ดูแล</b>"}</div>
+      <button id="dOk">ตกลง</button>`);
+    $("dOk").onclick = () => { closeDialog(); flush(); };
+  }
+}
+
+function buildCsv(){
+  const lines = ["Class,Filename,file_hash"];
+  for(const [f, h] of S.items){
+    const l = S.labels[f]; if(l) lines.push(`${l[0]},${f},${h}`);
+  }
+  return lines.join("\n") + "\n";
+}
+function downloadCsv(){
+  const blob = new Blob([buildCsv()], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `ground_truth_worms_${S.pack}_${S.user}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ---- input ----
+function onKey(e){
+  if($("overlay").classList.contains("show")) return;
+  const t = e.target && e.target.tagName;
+  if(t === "INPUT" && e.target.type !== "checkbox") return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key, kl = k.toLowerCase(), cur = curClass();
+  let handled = true;
+  if(k === "ArrowRight") setLabel(cur === -1 ? 0 : (cur + 1) % 7);
+  else if(k === "ArrowLeft") setLabel(cur === -1 ? 6 : (cur + 6) % 7);
+  else if(k === "ArrowDown") setLabel(cur === -1 ? 0 : DOWN[cur]);
+  else if(k === "ArrowUp") setLabel(cur === -1 ? 0 : UP[cur]);
+  else if(k === " " || kl === "d" || k === "ก") go(S.idx + 1);
+  else if(k === "Backspace" || kl === "a" || k === "ฟ") go(S.idx - 1);
+  else if(/^[1-7]$/.test(k)) setLabel(+k - 1);
+  else if(k === "0" || k === "Delete") setLabel(-1);
+  else if(kl === "s" || k === "ห") saveNow();
+  else if(kl === "n" || k === "น") jumpTodo();
+  else handled = false;
+  if(handled) e.preventDefault();
+}
+function jumpTodo(){
+  const i = nextTodo(S.idx);
+  if(i < 0){ setSync("ไม่มีรูปที่ยังไม่ลาเบลแล้ว", "ok"); setTimeout(updateSyncChip, 2000); } else go(i);
+}
+async function saveNow(){ persist(); S.lastError = ""; await flush(true); }
+
+async function renameUser(){
+  persist();
+  const v = await askName();
+  const u = new URL(location.href); u.searchParams.set("u", v); store.set("wl:name", v); location.href = u;
+}
+
+// ---- boot ----
+async function boot(){
+  const box = $("classes");
+  CLASSES.forEach(([name, c]) => {
+    const b = document.createElement("button");
+    b.dataset.c = c; b.innerHTML = `${name}<small>กด ${c + 1}</small>`;
+    b.onclick = () => setLabel(curClass() === c ? -1 : c);
+    box.appendChild(b);
+  });
+  $("bPrev").onclick = () => go(S.idx - 1);
+  $("bNext").onclick = () => go(S.idx + 1);
+  $("bTodo").onclick = jumpTodo;
+  $("bSave").onclick = saveNow;
+  $("bCsv").onclick = downloadCsv;
+  $("bJump").onclick = () => { const v = parseInt($("jump").value, 10); if(v >= 1) go(Math.min(v, S.items.length) - 1); };
+  $("bUser").onclick = renameUser;
+  $("optAuto").checked = store.get("wl:auto") === "1";
+  $("optAuto").onchange = () => store.set("wl:auto", $("optAuto").checked ? "1" : "0");
+  document.addEventListener("keydown", onKey);
+
+  try{ Object.assign(S.cfg, await (await fetch("config.json", {cache:"no-store"})).json()); }catch(e){}
+  if(!S.pack){ updateSyncChip(); return pickPack(); }
+
+  S.user = (qs.get("u") || store.get("wl:name") || "").replace(/[^\w฀-๿-]/g, "").slice(0, 30);
+  if(!S.user) S.user = await askName();
+  store.set("wl:name", S.user);
+
+  $("chipPack").textContent = "pack: " + S.pack;
+  $("chipUser").textContent = "user: " + S.user;
+
+  try{
+    const m = await (await fetch(packUrl("manifest.json"), {cache:"no-store"})).json();
+    S.items = m.items;
+  }catch(e){
+    dialog(`<h3 style="margin:0">โหลดชุดข้อมูลไม่ได้</h3><div>pack "${S.pack}" ไม่มีอยู่ หรือเครือข่ายมีปัญหา</div>`);
+    return;
+  }
+  try{ S.labels = JSON.parse(store.get(lkey()) || "{}"); }catch(e){ S.labels = {}; }
+  try{ S.queue = JSON.parse(store.get(qkey()) || "[]"); }catch(e){ S.queue = []; }
+  const valid = new Set(S.items.map(x => x[0]));
+  for(const f of Object.keys(S.labels)) if(!valid.has(f)) delete S.labels[f];
+
+  render();
+  await pullRemote();
+
+  const pos = parseInt(store.get(`wlpos:${S.pack}:${S.user}`) || "-1", 10);
+  const first = nextTodo(pos >= 0 && pos < S.items.length ? pos - 1 : S.items.length - 1);
+  S.idx = first >= 0 ? first : Math.max(0, Math.min(pos, S.items.length - 1));
+  S._doneShown = Object.keys(S.labels).length === S.items.length;   // don't pop "done" on reopen
+  render();
+  flush();
+}
+boot();
+</script>
+</body>
+</html>
