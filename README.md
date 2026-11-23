@@ -113,7 +113,7 @@ bash tools/lanta_publish_pack.sh <โฟลเดอร์ที่มี roi_ma
 
 ```powershell
 & "D:\DEV\miniforge-pypy3\python.exe" -I tools\progress.py            # ทุก pack
-& "D:\DEV\miniforge-pypy3\python.exe" -I tools\progress.py --pack relabel_class3_a
+& "D:\DEV\miniforge-pypy3\python.exe" -I tools\progress.py --pack class3_A
 ```
 
 อ่าน endpoint/packsBase จาก `docs/config.json` เอง; จำนวนรวมต่อ pack = จำนวนรายการใน `manifest.json` บนเว็บภาพ, ที่ลาเบลแล้ว = ค่าล่าสุดต่อไฟล์ (Class ≥ 0). สถานะ `DONE` = ครบทุกรูป → ค่อยรัน `collect_labels.py` ดึง CSV

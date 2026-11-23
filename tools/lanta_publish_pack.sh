@@ -25,5 +25,5 @@ git commit -q -m "pack $PACK (exported on Lanta)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git push -q origin main
-git log --oneline | head -1
+git log -1 --oneline    # (not `git log | head -1`: SIGPIPE + pipefail made the script exit non-zero after a successful push)
 echo "pushed. live in ~1 min: https://rungkarn.github.io/worm_labeler/?pack=$PACK"

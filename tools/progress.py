@@ -3,7 +3,7 @@
 
 Reads endpoint, token and packsBase from docs/config.json by default, so just:
     python tools/progress.py
-    python tools/progress.py --pack relabel_class3_a
+    python tools/progress.py --pack class3_A
     python tools/progress.py --url https://script.google.com/macros/s/.../exec --packs-base https://user.github.io/worm_labeler_packs/
 
 Total per pack = number of items in that pack's manifest.json (fetched from the packs site).
