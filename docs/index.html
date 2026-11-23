@@ -37,6 +37,7 @@ button.ghost{background:var(--panel)}
 .opts{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center}
 .opts input[type=number]{width:72px;background:var(--panel);border:0;color:var(--fg);padding:4px 6px;border-radius:4px}
 .keys{font-size:12px;color:var(--muted);text-align:center;max-width:960px}
+#feedback{min-height:38px;font-size:24px;font-weight:bold;color:#2ECC71;text-align:center;line-height:1.3}
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
 #overlay.show{display:flex}
 .card{background:var(--bg);border:2px solid var(--panel);border-radius:8px;padding:20px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
@@ -45,6 +46,7 @@ button.ghost{background:var(--panel)}
 @media (max-width:700px){
   .classes{grid-template-columns:repeat(2,minmax(0,1fr))}.keys{display:none}
   main{padding:8px}
+  #feedback{font-size:18px;min-height:28px}
   .views{flex-wrap:nowrap;gap:6px}.view{flex:1 1 0}.view h3{font-size:11px}
 }
 </style>
@@ -61,35 +63,35 @@ button.ghost{background:var(--panel)}
 <div id="bar"><i></i></div>
 
 <main>
+  <div id="feedback" aria-live="polite"></div>
   <div class="views">
     <div class="view">
-      <h3 id="tMask">Overlay Mask</h3>
+      <h3 id="tMask">ภาพ Segment Mask</h3>
       <div class="frame"><img id="imgSrc2" alt=""><img id="imgMask" alt=""></div>
     </div>
     <div class="view">
-      <h3 id="tSrc">Source</h3>
+      <h3 id="tSrc">ภาพต้นฉบับ</h3>
       <div class="frame"><img id="imgSrc" alt=""></div>
     </div>
   </div>
 
   <div class="controls">
-    <button id="bPrev" class="ghost">◀ Previous (Backspace / a)</button>
-    <button id="bNext" class="ghost">Next (Space / d) ▶</button>
+    <button id="bPrev" class="ghost">◀ ภาพก่อนหน้า (Backspace / ← / a)</button>
+    <button id="bNext" class="ghost">ภาพถัดไป (Space / → / d) ▶</button>
     <button id="bTodo" class="ghost">ไปรูปที่ยังไม่ลาเบล (n)</button>
-    <button id="bSave" class="green">💾 Save / Sync (s)</button>
+    <button id="bSave" class="green">💾 บันทึกข้อมูล (s)</button>
     <button id="bCsv" class="ghost">⬇ Download CSV</button>
   </div>
 
   <div class="classes" id="classes"></div>
 
   <div class="opts">
-    <label><input type="checkbox" id="optAuto"> กดเลือกแล้วไปรูปถัดไปอัตโนมัติ</label>
     <label>ไปรูปที่ <input type="number" id="jump" min="1"> <button id="bJump" class="ghost" style="padding:3px 10px">ไป</button></label>
     <button id="bUser" class="ghost" style="padding:3px 10px">เปลี่ยนชื่อ</button>
   </div>
 
   <div class="keys">
-    ปุ่ม: 1–7 เลือกคลาส · 0 ล้างคำตอบ · ←/→ เลื่อนคลาส · ↑/↓ สลับแถว · Space/d ถัดไป · Backspace/a ย้อน · n ไปรูปที่ยังไม่ลาเบล · s บันทึก
+    ปุ่ม: 1–7 เลือกคลาส (แล้วไปรูปถัดไปอัตโนมัติ) · 0 ล้างคำตอบ · Space/→/d ถัดไป · Backspace/←/a ย้อน · n ไปรูปที่ยังไม่ลาเบล · s บันทึก
   </div>
 </main>
 
@@ -102,9 +104,8 @@ const CLASSES = [
   ["หนอนเด็ก", 0], ["หนอนพอดี", 1], ["หนอนแก่", 2], ["หนอนระบุรุ่นไม่ได้", 3],
   ["ไม่ใช่หนอน", 4], ["รูปแหว่ง/พลาด", 5], ["หนอนไม่มีคุณภาพ", 6],
 ];
-const DOWN = {0:4,1:5,2:6,3:6,4:4,5:5,6:6};
-const UP   = {4:0,5:1,6:3,0:0,1:1,2:2,3:3};
 const FLUSH_EVERY = 10, FLUSH_MS = 15000, BATCH = 200, PREFETCH = 6;
+const ADVANCE_MS = 600;   // same as worm_label_app_v2.1.py: show "✅ <class>" then go to next image
 
 const $ = id => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
@@ -239,11 +240,25 @@ function setLabel(c){
   const ts = Date.now();
   if(c < 0) delete S.labels[it[0]]; else S.labels[it[0]] = [c, ts];
   S.queue.push({ts: new Date(ts).toISOString(), pack:S.pack, labeler:S.user, Class:c, Filename:it[0], file_hash:it[1]});
+  cancelAdvance();
+  if(c >= 0){
+    // v2.1 behaviour: flash the chosen class, then move on after 600 ms (choosing again restarts the timer)
+    S.flash = true;
+    const at = S.idx;
+    S.timer = setTimeout(() => {
+      S.timer = null; S.flash = false;
+      if(S.idx === at && at < S.items.length - 1) go(at + 1); else render();
+    }, ADVANCE_MS);
+  }
   persist(); render();
   if(S.queue.length >= FLUSH_EVERY) flush();
-  if(c >= 0 && $("optAuto").checked) go(S.idx + 1);
+}
+function cancelAdvance(){
+  if(S.timer){ clearTimeout(S.timer); S.timer = null; }
+  S.flash = false;
 }
 function go(i){
+  cancelAdvance();   // a manual move during the 600 ms must not be followed by a second automatic one
   if(i < 0 || i >= S.items.length) return;
   S.idx = i; store.set(`wlpos:${S.pack}:${S.user}`, String(i)); render();
 }
@@ -274,13 +289,15 @@ function render(){
   $("bar").firstElementChild.style.width = n ? (100 * done / n) + "%" : "0";
   if(!n) return;
   const it = S.items[S.idx], s = stem(it[0]);
-  $("tMask").textContent = `Overlay Mask (${S.idx + 1}/${n})`;
-  $("tSrc").textContent = `Source: ${it[0]}`;
-  document.title = `Worm Label - ${it[0]}`;
+  $("tMask").textContent = `ภาพ Segment Mask (${S.idx + 1}/${n})`;
+  $("tSrc").textContent = `ภาพต้นฉบับ: ${it[0]}`;
+  document.title = `Labeling - ${it[0]}`;
   const src = packUrl(`src/${s}.jpg`);
   $("imgSrc").src = src; $("imgSrc2").src = src; $("imgMask").src = packUrl(`mask/${s}.png`);
   const c = curClass();
   document.querySelectorAll("#classes button").forEach(b => b.classList.toggle("on", +b.dataset.c === c));
+  // "✅ class" right after choosing; "📌 เลือก: class" when coming back to an already-labelled image (as v2.1)
+  $("feedback").textContent = c < 0 ? "" : (S.flash ? "✅ " : "📌 เลือก: ") + CLASSES[c][0];
   $("bPrev").disabled = S.idx === 0;
   $("bNext").disabled = S.idx >= n - 1;
   $("jump").max = n;
@@ -318,14 +335,10 @@ function onKey(e){
   const t = e.target && e.target.tagName;
   if(t === "INPUT" && e.target.type !== "checkbox") return;
   if(e.ctrlKey || e.metaKey || e.altKey) return;
-  const k = e.key, kl = k.toLowerCase(), cur = curClass();
+  const k = e.key, kl = k.toLowerCase();
   let handled = true;
-  if(k === "ArrowRight") setLabel(cur === -1 ? 0 : (cur + 1) % 7);
-  else if(k === "ArrowLeft") setLabel(cur === -1 ? 6 : (cur + 6) % 7);
-  else if(k === "ArrowDown") setLabel(cur === -1 ? 0 : DOWN[cur]);
-  else if(k === "ArrowUp") setLabel(cur === -1 ? 0 : UP[cur]);
-  else if(k === " " || kl === "d" || k === "ก") go(S.idx + 1);
-  else if(k === "Backspace" || kl === "a" || k === "ฟ") go(S.idx - 1);
+  if(k === " " || k === "ArrowRight" || kl === "d" || k === "ก") go(S.idx + 1);
+  else if(k === "Backspace" || k === "ArrowLeft" || kl === "a" || k === "ฟ") go(S.idx - 1);
   else if(/^[1-7]$/.test(k)) setLabel(+k - 1);
   else if(k === "0" || k === "Delete") setLabel(-1);
   else if(kl === "s" || k === "ห") saveNow();
@@ -351,7 +364,7 @@ async function boot(){
   CLASSES.forEach(([name, c]) => {
     const b = document.createElement("button");
     b.dataset.c = c; b.innerHTML = `${name}<small>กด ${c + 1}</small>`;
-    b.onclick = () => setLabel(curClass() === c ? -1 : c);
+    b.onclick = () => setLabel(c);
     box.appendChild(b);
   });
   $("bPrev").onclick = () => go(S.idx - 1);
@@ -361,8 +374,6 @@ async function boot(){
   $("bCsv").onclick = downloadCsv;
   $("bJump").onclick = () => { const v = parseInt($("jump").value, 10); if(v >= 1) go(Math.min(v, S.items.length) - 1); };
   $("bUser").onclick = renameUser;
-  $("optAuto").checked = store.get("wl:auto") === "1";
-  $("optAuto").onchange = () => store.set("wl:auto", $("optAuto").checked ? "1" : "0");
   document.addEventListener("keydown", onKey);
 
   try{ Object.assign(S.cfg, await (await fetch("config.json", {cache:"no-store"})).json()); }catch(e){}
