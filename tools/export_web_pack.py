@@ -74,6 +74,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="export at most N masks (0 = all)")
     ap.add_argument("--list", help="txt file, one mask filename/stem per line: export only these")
     ap.add_argument("--skip-labelled", help="existing label CSV (Class,Filename,file_hash): skip rows whose hash already matches")
+    ap.add_argument("--part", help="i/n: export only the i-th of n contiguous chunks (split work between labellers), e.g. 1/2")
     ap.add_argument("--max-side", type=int, default=450, help="downscale so the longest side <= this (0 = keep). default 450 = desktop display size")
     ap.add_argument("--quality", type=int, default=88)
     ap.add_argument("--workers", type=int, default=8)
@@ -103,6 +104,13 @@ def main():
 
     if a.limit:
         masks = masks[: a.limit]
+    if a.part:
+        i, n = (int(x) for x in a.part.split("/"))
+        if not 1 <= i <= n:
+            sys.exit("--part: use i/n with 1 <= i <= n, e.g. 1/2")
+        k = -(-len(masks) // n)                  # ceil: contiguous chunks keep crops of one photo together
+        masks = masks[(i - 1) * k : i * k]
+        print(f"part {i}/{n}: {len(masks)} masks")
     missing = [m.name for m in masks if not (root / "roi_src" / m.name).exists()]
     if missing:
         print(f"warning: {len(missing)} masks have no roi_src, skipped (e.g. {missing[:3]})")

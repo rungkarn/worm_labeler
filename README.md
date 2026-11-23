@@ -26,6 +26,7 @@ roi_mask/*.npy + roi_src/*.npy ─► tools/export_web_pack.py ─► docs/packs
 & "D:\DEV\miniforge-pypy3\python.exe" -I tools\export_web_pack.py --src-dir <โฟลเดอร์ที่มี roi_mask และ roi_src> --site .\docs --pack nb01 --limit 3000
 ```
 
+- `--part 1/2` แบ่งงานให้หลายคน: ส่งออกเฉพาะชิ้นที่ 1 จาก 2 (แบ่งต่อเนื่องตามชื่อไฟล์) — รันซ้ำด้วย `--part 2/2 --pack <ชื่ออื่น>` (ใช้ `--site` เดียวกัน `index.json` จะรวมให้) แล้วแจกลิงก์คนละ pack
 - `--skip-labelled labels.csv` ข้ามภาพที่ CSV เดิมลาเบลแล้ว (เทียบ hash เหมือนโปรแกรมเดิม), `--list list.txt` เลือกเฉพาะบางไฟล์
 - ขนาดจริง ~50 KB/รูป (crop 505px → ลดเหลือ 450px เท่าที่โปรแกรมเดิมแสดง) → 3,000 รูป ≈ 150 MB
   **GitHub Pages จำกัดเว็บ ~1 GB** → แบ่ง pack ละ ≤ 3,000–5,000 รูป และลบ pack ที่ลาเบลเสร็จแล้วออกจาก repo (ประวัติ git ยังเก็บภาพเก่าอยู่ — ถ้า repo โตเกิน ให้ squash/สร้าง repo ใหม่)
