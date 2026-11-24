@@ -62,7 +62,7 @@ https://<user>.github.io/worm-label/?pack=nb01&u=somchai
    แล้ว commit + push อีกครั้ง
 4. ทดสอบ: เปิด URL `…/exec?action=dump` ต้องได้ `{"ok":true,"rows":[]}`
 
-> `token` อยู่ใน config.json ซึ่งเป็น public — กันได้แค่คนสุ่มส่งข้อมูลมั่ว ไม่ใช่ความลับจริง. Script ตรวจ Class (−1…6), ชื่อ, ชื่อไฟล์ให้แล้ว และ**ต่อแถวเท่านั้น ไม่เขียนทับ** ถ้ามีคนส่งขยะก็ตัดแถวทิ้งได้
+> `token` อยู่ใน config.json ซึ่งเป็น public — กันได้แค่คนสุ่มส่งข้อมูลมั่ว ไม่ใช่ความลับจริง. Script ตรวจ Class (−1…7; 7 = กำกึ่ง ใช้เฉพาะชุดอายุ), ชื่อ, ชื่อไฟล์ให้แล้ว และ**ต่อแถวเท่านั้น ไม่เขียนทับ** ถ้ามีคนส่งขยะก็ตัดแถวทิ้งได้
 
 ## 4. เอาผลกลับ
 
@@ -127,3 +127,28 @@ bash tools/lanta_publish_pack.sh <โฟลเดอร์ที่มี roi_ma
 ```
 
 อ่าน endpoint/packsBase จาก `docs/config.json` เอง; จำนวนรวมต่อ pack = จำนวนรายการใน `manifest.json` บนเว็บภาพ, ที่ลาเบลแล้ว = ค่าล่าสุดต่อไฟล์ (Class ≥ 0). สถานะ `DONE` = ครบทุกรูป → ค่อยรัน `collect_labels.py` ดึง CSV
+
+## ชุดอายุ (task age) — หน้า `age/`
+
+งานถามอายุหนอนตามเกณฑ์ใหม่ (pack `R1_01`…`R1_10`) ใช้หน้าแยก ส่งเข้า Apps Script/Sheet ตัวเดิม (ไม่แก้ `apps_script.gs`)
+
+- ลิงก์: `https://rungkarn.github.io/worm_labeler/age/?pack=R1_01&u=ชื่อ` — เปิด `/?pack=R1_01` ก็เด้งมาหน้า age เอง (อ่าน `manifest.task`); pack 7 คลาสไม่มี `task` อยู่หน้าเดิม
+- สัญญา pack (repo ภาพ `worm_labeler_packs`): `packs/<ID>/manifest.json` (`task:"age"`, `classes[]`, `items[[instance_id,md5]]`), `ctx/<instance_id>.jpg` (เส้นเหลือง = ตัวที่ถาม), `close/<instance_id>.jpg` (ใกล้ ไว้ดูสี) 450×450, `packs/index.json` มี `{"id","n","task":"age"}`
+- ปุ่มเหมือนโปรแกรมลาเบล 7 คลาส + 8 = กำกึ่ง (`Class` ที่ส่ง, −1 = ล้าง; คีย์ `1–8` ใช้ `e.code` เลยพิมพ์ไทยอยู่ก็ได้):
+
+  | Class | คีย์ | ชื่อ |
+  |---|---|---|
+  | 0 | 1 | หนอนเด็ก |
+  | 1 | 2 | หนอนพอดี (เขียวนวลอ่อน ยังไม่เห็นลาย) |
+  | 2 | 3 | หนอนแก่ (ลายดำ / ท้อง-หลังสีต่าง) |
+  | 3 | 4 | หนอนระบุรุ่นไม่ได้ |
+  | 4 | 5 | ไม่ใช่หนอน |
+  | 5 | 6 | รูปแหว่ง/พลาด |
+  | 6 | 7 | หนอนไม่มีคุณภาพ |
+  | **7** | **8** | **หนอนกำกึ่ง** (พอดี↔แก่ ลายจางๆ) |
+
+  code 0–6 ความหมายเดียวกับ 7 คลาส, 7 = กำกึ่ง (ชุดอายุเท่านั้น); `0` ล้าง, `n`, `s`, Space/Backspace เหมือนเดิม
+- **ต้อง redeploy Apps Script ก่อนใช้ปุ่ม 8** (ตัวเก่าตัด Class 7 ทิ้งเงียบๆ ตอบ `{ok:true,n:0}`): แก้ `tools/apps_script.gs` (รับ Class −1…7) แล้ว Deploy → Manage deployments → ✏️ แก้ deployment **เดิม** → Version: **New version** → Deploy (URL `/exec` เดิม; "New deployment" จะได้ URL ใหม่). หน้า age เช็ค `n` ที่ server ตอบ — ถ้าไม่เท่าจำนวนที่ส่งจะขึ้น sync สีแดงและเก็บคิวไว้ส่งซ้ำ ไม่ทิ้งคำตอบ
+- localStorage: ชื่อใช้คีย์ร่วม `wl:name`; ผล `wla:<pack>:<user>`, คิว `wlaq:…`, ตำแหน่ง `wlapos:…`, เคยเห็นเกณฑ์ `wlaseen:…`
+- Download CSV สำรอง: `age_<pack>_<user>.csv` (`instance_id,answer,code`)
+- **เก็บผล:** `code/tool/collect_age_labels.py` ใน repo `worm` บน Lanta เท่านั้น → ได้ CSV แยก **ไม่รวมเข้า CSV 7 คลาส** (`worm-24022026-labels_*.csv`) เพราะ code 7 (กำกึ่ง) ไม่มีใน 7 คลาส และเกณฑ์อายุต่างจากเกณฑ์เดิม. `tools/collect_labels.py` ข้าม pack ที่มี `task` (และทิ้งแถว Class 7 กันไว้) และปฏิเสธ `--pack <age pack>`; `tools/progress.py` ใช้ดูความคืบหน้าได้ตามปกติ

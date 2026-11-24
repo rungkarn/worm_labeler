@@ -8,6 +8,7 @@ Reads endpoint, token and packsBase from docs/config.json by default, so just:
 
 Total per pack = number of items in that pack's manifest.json (fetched from the packs site).
 Done = labels with Class >= 0 whose Filename is in the manifest (latest label per labeler+file wins).
+Age packs (task "age", ids R1_xx) work the same; a DONE age pack is collected by code/tool/collect_age_labels.py, not collect_labels.py.
 Needs only the standard library (no -I problems: self-contained).
 """
 import argparse
@@ -61,12 +62,13 @@ def main():
 
     # totals: manifests of every pack on the packs site
     index = get_json(f"{base}/packs/index.json")
-    totals, names = {}, {}
+    totals, names, tasks = {}, {}, {}
     for p in index:
         if a.pack and p["id"] != a.pack:
             continue
         m = get_json(f"{base}/packs/{urllib.parse.quote(p['id'])}/manifest.json")
         names[p["id"]] = {it[0] for it in m["items"]}
+        tasks[p["id"]] = m.get("task") or p.get("task") or ""
         totals[p["id"]] = len(m["items"])
     if a.pack and a.pack not in totals:
         raise SystemExit(f"pack '{a.pack}' not found on the packs site (have: {[p['id'] for p in index]})")
@@ -114,6 +116,9 @@ def main():
     w = [max(len(str(x)) for x in col) for col in zip(head, *rows)]
     for r in [head] + rows:
         print("  ".join(str(x).ljust(w[i]) for i, x in enumerate(r)))
+    age_done = sorted({r[0] for r in rows if r[4] == "DONE" and tasks.get(r[0]) == "age"})
+    if age_done:
+        print(f"\nDONE age packs {age_done}: collect with code/tool/collect_age_labels.py (worm repo, on Lanta), NOT collect_labels.py")
     unknown = {p for (p, _w) in stale}
     if unknown:
         print(f"\nnote: labels for packs not on the packs site (deleted/renamed): {sorted(unknown)}")

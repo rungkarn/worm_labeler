@@ -73,6 +73,12 @@ def latest(rows):
     return [r for _, r in best.values()]
 
 
+def refuse_age(pack):
+    raise SystemExit(f"refusing pack '{pack}': it is a task pack (age) — age packs are collected by "
+                     "code/tool/collect_age_labels.py in the worm repo, on Lanta. "
+                     "Age codes must never land in the 7-class CSVs.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default=str(DEFAULT_CFG))
@@ -93,13 +99,23 @@ def main():
     base = (a.packs_base or cfg.get("packsBase") or "").rstrip("/")
 
     # which packs, and which Filenames belong to each (from the live manifests)
-    manifests = {}
+    manifests, task_packs = {}, set()
     if base:
         index = get_json(f"{base}/packs/index.json")
         for p in index:
             if a.pack and p["id"] != a.pack:
                 continue
+            if p.get("task"):   # age (or any non-7-class) pack: never into the 7-class CSVs
+                if a.pack:
+                    refuse_age(p["id"])
+                task_packs.add(p["id"])
+                continue
             m = get_json(f"{base}/packs/{urllib.parse.quote(p['id'])}/manifest.json")
+            if m.get("task"):
+                if a.pack:
+                    refuse_age(p["id"])
+                task_packs.add(p["id"])
+                continue
             manifests[p["id"]] = {it[0] for it in m["items"]}
     if a.pack and a.pack not in manifests:
         print(f"note: pack '{a.pack}' is not on the site now — writing its labels without a manifest check")
@@ -116,10 +132,12 @@ def main():
         pack, who = r["pack"], r["labeler"]
         if a.pack and pack != a.pack:
             continue
+        if pack in task_packs:
+            continue
         if not a.pack and pack not in manifests:
             skipped[pack] = skipped.get(pack, 0) + 1
             continue
-        if int(r["Class"]) < 0:
+        if not 0 <= int(r["Class"]) <= 6:   # -1 cleared; 7 = border (age packs only) must never reach 7-class CSVs
             continue
         if pack in manifests and r["Filename"] not in manifests[pack]:
             continue

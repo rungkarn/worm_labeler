@@ -6,6 +6,9 @@
  *  - Deploy > New deployment > Web app > Execute as: Me, Who has access: Anyone
  *  - Put the /exec URL (and TOKEN, if you set one) into site/config.json
  *
+ * After editing this script: Deploy > Manage deployments > pencil (edit) the EXISTING deployment >
+ * Version: New version > Deploy. That keeps the /exec URL; "New deployment" would create a new URL.
+ *
  * Every label event is APPENDED (never overwritten). The latest ts per
  * (pack, labeler, Filename) wins; Class = -1 means "cleared".
  */
@@ -40,7 +43,7 @@ function doPost(e) {
     const out = [];
     for (const r of (body.rows || []).slice(0, MAX_ROWS_PER_POST)) {
       const c = Number(r.Class);
-      if (!(c >= -1 && c <= 6)) continue;
+      if (!(c >= -1 && c <= 7)) continue;   // 7 = border, age packs only
       if (!/^[\w\-]{1,40}$/.test(String(r.pack))) continue;
       if (!NAME_RE.test(String(r.labeler))) continue;
       if (!FILE_RE.test(String(r.Filename))) continue;

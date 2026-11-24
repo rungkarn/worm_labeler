@@ -391,6 +391,11 @@ async function boot(){
 
   try{ Object.assign(S.cfg, await (await fetch("config.json", {cache:"no-store"})).json()); }catch(e){}
   if(!S.pack){ updateSyncChip(); return pickPack(); }
+  // age packs (manifest.task === "age") have their own page; any fetch error falls through to the 7-class path
+  try{
+    const m0 = await (await fetch(packUrl("manifest.json"), {cache:"no-store"})).json();
+    if(m0 && m0.task === "age"){ location.replace("age/" + location.search); return; }
+  }catch(e){}
 
   S.user = (qs.get("u") || store.get("wl:name") || "").replace(/[^\w฀-๿-]/g, "").slice(0, 30);
   if(!S.user) S.user = await askName();
